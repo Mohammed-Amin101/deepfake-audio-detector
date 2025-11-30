@@ -19,7 +19,6 @@ We employ three complementary detection strategies:
 
 ## 📊 Results
 - **CNN**: Achieves highest accuracy on the *In-the-Wild* dataset.  
-- **SVM**: Offers speed and low resource usage.  
 - **CQCC-GMM**: Provides robustness against varied spoofing conditions.  
 
 👉 Together, these approaches illustrate the **trade-off between classical ML and deep learning** in audio deepfake detection.
