@@ -6,17 +6,13 @@ This project focuses on detecting **audio deepfakes** — synthetic voices gener
 ## 🚀 Methods
 We employ three complementary detection strategies:
 
-1. **MFCC + SVM**  
-   - Extract Mel-Frequency Cepstral Coefficients (MFCCs).  
-   - Classify with Support Vector Machine (SVM).  
-   - ✅ Lightweight, computationally efficient.
 
-2. **CQCC + GMM**  
+1. **CQCC + GMM**  
    - Extract Constant-Q Cepstral Coefficients (CQCCs).  
    - Classify using Gaussian Mixture Models (GMMs) with log-likelihood ratios.  
    - ✅ Robust, inherits strengths from traditional anti-spoofing.
 
-3. **CNN + Mel-Spectrograms**  
+2. **CNN + Mel-Spectrograms**  
    - Convert audio into Mel-spectrograms.  
    - Train a Convolutional Neural Network (CNN) for end-to-end learning.  
    - ✅ State-of-the-art accuracy.
@@ -33,11 +29,11 @@ We employ three complementary detection strategies:
 - Voice Spoofing  
 - Support Vector Machine (SVM)  
 
-To run the code: activate the environment → `source venv/bin/activate` (or `venv\Scripts\activate` on Windows), then run → `streamlit run detector.py`
+To run the code: activate the environment → `source venv/bin/activate` (or `venv\Scripts\activate` on Windows), then run → `streamlit run detectora.py`
 
 - Gaussian Mixture Model (GMM)  
 - Convolutional Neural Network (CNN)  
-- MFCC, CQCC, Spectrograms  
+- Spectrograms  
 
 
 
