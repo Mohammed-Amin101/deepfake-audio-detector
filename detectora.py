@@ -1,5 +1,5 @@
 
-# SVM , CNN , GMM , graphs with mp3 
+CNN , GMM , graphs with mp3 
 import streamlit as st
 import numpy as np
 import librosa
@@ -15,16 +15,13 @@ import scipy.fftpack
 SAMPLE_RATE = 16000
 N_MELS = 64
 FIXED_FRAMES = 128
-MFCC_COUNT = 40
 
-SVM_PATH = "svm/svm_mfcc.pkl"
 KERAS_PATH = "cnn/deepfake_audio_model.keras"
 GMM_REAL_PATH = "gmm/gmm_real.pkl"
 GMM_FAKE_PATH = "gmm/gmm_fake.pkl"
 
 # Pre-computed test accuracies
 MODEL_ACCURACIES = {
-    "SVM (MFCC)": 0.965,
     "CNN (Mel-spectrogram)": 0.996,
     "CQCC + GMM (LLR)": 0.904
 }
@@ -113,16 +110,13 @@ st.markdown("""
 st.markdown("""
 <div class="main-header">
     <h1>🎙️ Audio Deepfake Detector</h1>
-    <p>Advanced AI-powered detection using SVM, CNN, and GMM algorithms</p>
+    <p>Advanced AI-powered detection using CNN and GMM algorithms</p>
 </div>
 """, unsafe_allow_html=True)
 
 # -----------------------------
 # Lazy model loading (cache)
 # -----------------------------
-@st.cache_resource
-def load_svm():
-    return joblib.load(SVM_PATH)
 
 @st.cache_resource
 def load_cnn():
@@ -135,11 +129,6 @@ def load_gmm():
 # -----------------------------
 # Feature extractors
 # -----------------------------
-def extract_mfcc(file, sr=SAMPLE_RATE, n_mfcc=MFCC_COUNT):
-    y, sr = librosa.load(file, sr=sr, mono=True)
-    mfcc = librosa.feature.mfcc(y=y, sr=sr, n_mfcc=n_mfcc)
-    mfcc_scaled = np.mean(mfcc.T, axis=0).reshape(1, -1)
-    return mfcc_scaled, y, sr, mfcc
 
 def extract_melspectrogram(file, sr=SAMPLE_RATE, n_mels=N_MELS, max_len=FIXED_FRAMES):
     y, sr = librosa.load(file, sr=sr, mono=True)
@@ -204,7 +193,7 @@ with col1:
             "Filename": uploaded_file.name,
             "File size": f"{uploaded_file.size} bytes"
         }
-        with st.expander("📋 File Details"):
+        with st.expander("📋 File Info"):
             for key, value in file_details.items():
                 st.write(f"**{key}:** {value}")
     st.markdown('</div>', unsafe_allow_html=True)
@@ -215,8 +204,7 @@ with col2:
     algo = st.radio(
         "Select detection method:",
         (
-            "SVM (MFCC)",
-            "CNN (Mel-spectrogram)", 
+            "CNN (Mel-spectrogram)",
             "CQCC + GMM (LLR)",
         ),
         help="Each algorithm uses different audio features for detection"
@@ -234,7 +222,6 @@ with col2:
 # Algorithm descriptions
 with st.expander("ℹ️ Algorithm Information"):
     algo_info = {
-        "SVM (MFCC)": "Support Vector Machine using Mel-Frequency Cepstral Coefficients - captures spectral characteristics of speech",
         "CNN (Mel-spectrogram)": "Convolutional Neural Network analyzing mel-spectrograms - uses deep learning to detect visual patterns in audio",
         "CQCC + GMM (LLR)": "Gaussian Mixture Models with Constant-Q Cepstral Coefficients - compares likelihood ratios between real/fake distributions"
     }
@@ -255,16 +242,7 @@ if uploaded_file is not None and analyze_button:
     with st.spinner("🔄 Processing audio and running analysis..."):
         
         # Run the selected algorithm
-        if algo == "SVM (MFCC)":
-            features, y, sr, mfcc = extract_mfcc(uploaded_file)
-            svm_model = load_svm()
-            pred = svm_model.predict(features)[0]
-            proba = svm_model.predict_proba(features)[0]
-            prob_real, prob_fake = float(proba[0]), float(proba[1])
-            label = "🟢 REAL" if pred == 0 else "🔴 FAKE"
-            result_class = "result-positive" if pred == 0 else "result-negative"
-
-        elif algo == "CNN (Mel-spectrogram)":
+        if algo == "CNN (Mel-spectrogram)":
             mel_norm, y, sr, mel_db_for_plot = extract_melspectrogram(uploaded_file)
             cnn_model = load_cnn()
             X = mel_norm[np.newaxis, ..., np.newaxis]
@@ -331,47 +309,7 @@ if uploaded_file is not None and analyze_button:
     st.subheader("📊 Audio Analysis Visualizations")
     
     # Create tabs for different visualizations
-    if algo == "SVM (MFCC)":
-        tab1, tab2, tab3 = st.tabs(["📈 Waveform", "🔥 MFCC Features", "📊 Probabilities"])
-        
-        with tab1:
-            st.markdown('<div class="compact-plot">', unsafe_allow_html=True)
-            fig, ax = plt.subplots(figsize=(10, 4))
-            librosa.display.waveshow(y, sr=sr, ax=ax)
-            ax.set_xlabel("Time (s)")
-            ax.set_ylabel("Amplitude")
-            ax.set_title("Audio Waveform")
-            ax.grid(True, alpha=0.3)
-            st.pyplot(fig)
-            st.markdown('</div>', unsafe_allow_html=True)
-        
-        with tab2:
-            st.markdown('<div class="compact-plot">', unsafe_allow_html=True)
-            fig, ax = plt.subplots(figsize=(10, 5))
-            img = librosa.display.specshow(mfcc, x_axis="time", ax=ax, sr=sr)
-            fig.colorbar(img, ax=ax)
-            ax.set_title("Mel-Frequency Cepstral Coefficients (MFCCs)")
-            st.pyplot(fig)
-            st.markdown('</div>', unsafe_allow_html=True)
-        
-        with tab3:
-            st.markdown('<div class="compact-plot">', unsafe_allow_html=True)
-            fig, ax = plt.subplots(figsize=(8, 5))
-            bars = ax.bar(["Real", "Fake"], [prob_real, prob_fake], 
-                         color=['#4CAF50', '#F44336'])
-            ax.set_ylim(0, 1)
-            ax.set_ylabel("Probability")
-            ax.set_title("Detection Confidence")
-            
-            # Add value labels on bars
-            for bar in bars:
-                height = bar.get_height()
-                ax.text(bar.get_x() + bar.get_width()/2., height + 0.01,
-                       f'{height:.2%}', ha='center', va='bottom')
-            st.pyplot(fig)
-            st.markdown('</div>', unsafe_allow_html=True)
-
-    elif algo == "CNN (Mel-spectrogram)":
+    if algo == "CNN (Mel-spectrogram)":
         tab1, tab2, tab3 = st.tabs(["📈 Waveform", "🌈 Mel-Spectrogram", "📊 Probabilities"])
         
         with tab1:
@@ -487,14 +425,7 @@ if uploaded_file is not None and analyze_button:
 st.markdown("---")
 st.subheader("📈 Model Performance Comparison")
 
-perf_col1, perf_col2, perf_col3 = st.columns(3)
-
-with perf_col1:
-    st.metric(
-        label="SVM (MFCC)",
-        value=f"{MODEL_ACCURACIES['SVM (MFCC)']*100:.1f}%",
-        help="Accuracy on test dataset"
-    )
+perf_col2, perf_col3 = st.columns(2)
 
 with perf_col2:
     st.metric(
@@ -514,9 +445,7 @@ with perf_col3:
 with st.sidebar:
     st.header("ℹ️ About This Tool")
     st.markdown("""
-    This application uses three different machine learning approaches to detect deepfake audio:
-    
-    **🔸 SVM with MFCCs**: Traditional machine learning approach using spectral features
+    This application uses two different machine learning approaches to detect deepfake audio:
     
     **🔸 CNN with Mel-spectrograms**: Deep learning model that analyzes visual patterns in audio spectrograms
     
